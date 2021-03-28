@@ -8,6 +8,7 @@ Summary:	The Apache Kafka C library
 License:	BSD
 URL:		https://github.com/edenhill/librdkafka
 Source0:	https://github.com/edenhill/librdkafka/archive/v%{version}.tar.gz#/%{name}-%{version}.tar.gz
+Patch0:		librdkafka-%{version}-fix-c11thread.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
