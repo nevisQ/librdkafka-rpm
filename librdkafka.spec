@@ -1,21 +1,22 @@
-%global build_cflags        %{build_cflags} -std=c11
-
 Name:		librdkafka
-Version:	0.11.6
-Release:	3%{?dist}
+Version:	1.6.1
+Release:	1%{?dist}
 Summary:	The Apache Kafka C library
 
 License:	BSD
 URL:		https://github.com/edenhill/librdkafka
-Source0:	https://github.com/edenhill/librdkafka/archive/v%{version}.tar.gz#/%{name}-%{version}.tar.gz
-Patch0:		librdkafka-%{version}-fix-c11thread.patch
+Source0:	%{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
-BuildRequires:	python2
-BuildRequires:  openssl-devel
-BuildRequires:  cyrus-sasl-devel
-BuildRequires:  lz4-devel
+BuildRequires:	make
+BuildRequires:	python3
+BuildRequires:	libzstd-devel
+BuildRequires:	lz4-devel
+BuildRequires:	openssl-devel
+BuildRequires:	cyrus-sasl-devel
+BuildRequires:	zlib-devel
+BuildRequires:	rapidjson-devel
 
 %description
 Librdkafka is a C/C++ library implementation of the Apache Kafka protocol,
@@ -35,15 +36,26 @@ This package contains headers and libraries required to build applications
 using librdkafka.
 
 %prep
-%setup -q
-
-%patch0 -p1
+%autosetup -p1
 
 %build
+# This package has a configure test which uses ASMs, but does not link the
+# resultant .o files.  As such the ASM test is always successful, even on
+# architectures were the ASM is not valid when compiling with LTO.
+#
+# -ffat-lto-objects is sufficient to address this issue.  It is the default
+# for F33, but is expected to only be enabled for packages that need it in
+# F34, so we use it here explicitly
+%define _lto_cflags -flto=auto -ffat-lto-objects
 
-%configure --enable-lz4 \
-           --enable-ssl \
-           --enable-sasl
+%configure \
+    --enable-zlib \
+    --enable-zstd \
+    --enable-lz4 \
+    --enable-lz4-ext \
+    --enable-ssl \
+    --enable-gssapi \
+    --enable-sasl
 
 %make_build
 
@@ -53,13 +65,14 @@ make check
 %install
 %make_install
 find %{buildroot} -name '*.a' -delete -print
+find %{buildroot} -name '*-static.pc' -delete -print
 
 %ldconfig_scriptlets
 
 %files
 %{_libdir}/librdkafka.so.*
 %{_libdir}/librdkafka++.so.*
-%doc README.md CONFIGURATION.md
+%doc README.md CONFIGURATION.md INTRODUCTION.md LICENSE LICENSES.txt STATISTICS.md CHANGELOG.md
 %license LICENSE LICENSE.pycrc LICENSE.snappy
 
 %files devel
@@ -69,11 +82,46 @@ find %{buildroot} -name '*.a' -delete -print
 %attr(0755,root,root) %{_libdir}/librdkafka++.so
 %{_libdir}/pkgconfig/rdkafka.pc
 %{_libdir}/pkgconfig/rdkafka++.pc
-%{_libdir}/pkgconfig/rdkafka-static.pc
-%{_libdir}/pkgconfig/rdkafka++-static.pc
 
 
 %changelog
+* Mon Mar 08 2021 Attila Lakatos <alakatos@redhat.com> - 1.6.1-1
+- Update to upstream 1.6.1
+  resolves: rhbz#1932286
+
+* Wed Feb 03 2021 Neal Gompa <ngompa@datto.com> - 1.6.0-1
+- Update to upstream 1.6.0
+  resolves: rhbz#1883910
+- Enable all missing features
+- Fix linking to external lz4 library
+- Minor spec cleanups
+
+* Tue Jan 26 2021 Fedora Release Engineering <releng@fedoraproject.org> - 1.5.0-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
+
+* Wed Sep 09 2020 Zoltan Fridrich <zfridric@redhat.com> - 1.5.0-1
+- Update to upstream 1.5.0
+  resolves: rhbz#1818082
+
+* Wed Sep 09 2020 Zoltan Fridrich <zfridric@redhat.com> - 1.3.0-6
+- Switch BuildRequires from python2 to python3
+  resolves: rhbz#1808329
+
+* Fri Aug 21 2020 Jeff Law <law@redhat.com> - 1.3.0-5
+- Re-enable LTO
+
+* Tue Jul 28 2020 Fedora Release Engineering <releng@fedoraproject.org> - 1.3.0-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
+
+* Tue Jun 30 2020 Jeff Law <law@redhat.com> - 1.3.0-3
+- Disable LTO
+
+* Wed Jan 29 2020 Fedora Release Engineering <releng@fedoraproject.org> - 1.3.0-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
+
+* Mon Dec 30 2019 Michal Luscon <mluscon@gmail.com> - 1.3.0-1
+- Update to upstream 1.3.0
+
 * Thu Jul 25 2019 Fedora Release Engineering <releng@fedoraproject.org> - 0.11.6-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
 
