@@ -1,21 +1,21 @@
-%global build_cflags        %{build_cflags} -std=c11
-
 Name:		librdkafka
 Version:	0.11.6
-Release:	3%{?dist}
+Release:	4%{?dist}
 Summary:	The Apache Kafka C library
 
+Group:		Development/Libraries
 License:	BSD
 URL:		https://github.com/edenhill/librdkafka
 Source0:	https://github.com/edenhill/librdkafka/archive/v%{version}.tar.gz#/%{name}-%{version}.tar.gz
-Patch0:		librdkafka-%{version}-fix-c11thread.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
-BuildRequires:	python2
+BuildRequires:	python3
 BuildRequires:  openssl-devel
 BuildRequires:  cyrus-sasl-devel
 BuildRequires:  lz4-devel
+
+Patch1: librdkafka-python3.patch 
 
 %description
 Librdkafka is a C/C++ library implementation of the Apache Kafka protocol,
@@ -26,6 +26,7 @@ messages/second for the consumer.
 
 %package	devel
 Summary:	The Apache Kafka C library (Development Environment)
+Group:		Development/Libraries
 Requires:	%{name}%{?_isa} = %{version}-%{release}
 
 %description	devel
@@ -37,10 +38,9 @@ using librdkafka.
 %prep
 %setup -q
 
-%patch0 -p1
+%patch1 -p1 -b .python3
 
 %build
-
 %configure --enable-lz4 \
            --enable-ssl \
            --enable-sasl
@@ -54,19 +54,20 @@ make check
 %make_install
 find %{buildroot} -name '*.a' -delete -print
 
-%ldconfig_scriptlets
+%post	-p /sbin/ldconfig
+%postun	-p /sbin/ldconfig
 
 %files
 %{_libdir}/librdkafka.so.*
 %{_libdir}/librdkafka++.so.*
-%doc README.md CONFIGURATION.md
+%doc README.md CONFIGURATION.md INTRODUCTION.md
 %license LICENSE LICENSE.pycrc LICENSE.snappy
 
 %files devel
 %dir %{_includedir}/librdkafka
 %attr(0644,root,root) %{_includedir}/librdkafka/*
-%attr(0755,root,root) %{_libdir}/librdkafka.so
-%attr(0755,root,root) %{_libdir}/librdkafka++.so
+%{_libdir}/librdkafka.so
+%{_libdir}/librdkafka++.so
 %{_libdir}/pkgconfig/rdkafka.pc
 %{_libdir}/pkgconfig/rdkafka++.pc
 %{_libdir}/pkgconfig/rdkafka-static.pc
@@ -74,6 +75,9 @@ find %{buildroot} -name '*.a' -delete -print
 
 
 %changelog
+* Fri Apr 16 2021 Nikita Tokarchuk <nikita@tokarch.uk> - 0.11.6-4
+- Backported spec to EPEL release
+
 * Thu Jul 25 2019 Fedora Release Engineering <releng@fedoraproject.org> - 0.11.6-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
 
